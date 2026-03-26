@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven'
+    }
+
     environment {
         DOCKER_IMAGE = 'charantejadevops/java-cicd-demo'
     }
@@ -26,8 +30,12 @@ pipeline {
 
         stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                    sh 'docker login -u $USERNAME -p $PASSWORD'
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                     sh 'docker push $DOCKER_IMAGE:latest'
                 }
             }
@@ -35,9 +43,7 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh 'docker stop java-app || true'
-                sh 'docker rm java-app || true'
-                sh 'docker run -d -p 8080:8080 --name java-app $DOCKER_IMAGE:latest'
+                sh 'docker run -d -p 8081:8080 $DOCKER_IMAGE:latest'
             }
         }
     }
